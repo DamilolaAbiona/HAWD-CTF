@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HAWD HackersFriday CTF</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Poppins:wght@300;600;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #07090f;
+  color: #e0e6f0;
+  font-family: 'Poppins', sans-serif;
+  min-height: 100vh;
+}
+
+.grid-bg {
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,220,80,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,220,80,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+}
+
+.scanline {
+  position: fixed;
+  left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(0,220,80,0.3), transparent);
+  animation: scan 6s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes scan { 0% { top: 0; } 100% { top: 100vh; } }
+
+header {
+  padding: 28px 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.logo {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 18px;
+  letter-spacing: 2px;
+  color: #00dc50;
+}
+
+.logo span { color: rgba(255,255,255,0.3); }
+
+.badge {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 3px;
+  padding: 6px 16px;
+  border: 1px solid rgba(0,220,80,0.4);
+  border-radius: 20px;
+  color: #00dc50;
+}
+
+.hero {
+  text-align: center;
+  padding: 80px 48px 60px;
+}
+
+.pre-tag {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 4px;
+  color: #ffd000;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.pre-tag::before, .pre-tag::after {
+  content: '';
+  width: 40px; height: 1px;
+  background: #ffd000;
+}
+
+h1 {
+  font-size: 72px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -2px;
+  margin-bottom: 8px;
+}
+
+h1 .white { color: #fff; }
+h1 .green { color: #00dc50; }
+
+.subtitle {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 14px;
+  color: rgba(255,255,255,0.35);
+  letter-spacing: 2px;
+  margin-top: 16px;
+}
+
+/* CHALLENGES */
+.challenges {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 48px 80px;
+}
+
+.challenges h2 {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px;
+  letter-spacing: 4px;
+  color: rgba(255,255,255,0.3);
+  margin-bottom: 28px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.challenge-card {
+  background: rgba(14,18,30,0.8);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 14px;
+  padding: 28px 32px;
+  margin-bottom: 20px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.challenge-card:hover { border-color: rgba(0,220,80,0.25); }
+
+.challenge-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+}
+
+.card-1::before { background: #00dc50; }
+.card-2::before { background: #ffd000; }
+.card-3::before { background: #448aff; }
+
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.card-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.card-meta {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.tag {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  padding: 3px 10px;
+  border-radius: 4px;
+}
+
+.tag-cat { background: rgba(0,220,80,0.1); color: #00dc50; }
+.tag-diff { background: rgba(255,208,0,0.1); color: #ffd000; }
+.tag-pts  { background: rgba(68,138,255,0.1); color: #448aff; }
+
+.card-desc {
+  font-size: 15px;
+  color: rgba(255,255,255,0.5);
+  line-height: 1.7;
+  margin-bottom: 18px;
+}
+
+.card-hint {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  color: rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.03);
+  border-radius: 6px;
+  padding: 10px 14px;
+}
+
+.card-hint strong { color: rgba(255,255,255,0.4); }
+
+/* SCOREBOARD */
+.scoreboard {
+  max-width: 900px;
+  margin: 0 auto 80px;
+  padding: 0 48px;
+}
+
+.scoreboard h2 {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px;
+  letter-spacing: 4px;
+  color: rgba(255,255,255,0.3);
+  margin-bottom: 20px;
+}
+
+.score-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.score-table th {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: rgba(255,255,255,0.25);
+  padding: 10px 16px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.score-table td {
+  padding: 14px 16px;
+  font-size: 15px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.5);
+}
+
+.score-table tr:first-child td { color: #ffd000; }
+.score-table tr:first-child td:first-child::before { content: '👑 '; }
+
+/* FLAG SUBMIT */
+.submit-section {
+  max-width: 900px;
+  margin: 0 auto 80px;
+  padding: 0 48px;
+}
+
+.submit-box {
+  background: rgba(14,18,30,0.8);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 14px;
+  padding: 36px;
+  text-align: center;
+}
+
+.submit-box h3 {
+  font-size: 22px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 8px;
+}
+
+.submit-box p {
+  font-size: 14px;
+  color: rgba(255,255,255,0.35);
+  margin-bottom: 24px;
+  font-family: 'Share Tech Mono', monospace;
+}
+
+.flag-input {
+  width: 100%;
+  max-width: 500px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  padding: 14px 20px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 15px;
+  color: #00dc50;
+  outline: none;
+  margin-bottom: 14px;
+  display: block;
+  margin: 0 auto 16px;
+  transition: border-color 0.2s;
+}
+
+.flag-input:focus { border-color: rgba(0,220,80,0.4); }
+.flag-input::placeholder { color: rgba(255,255,255,0.15); }
+
+.submit-btn {
+  background: #00dc50;
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  padding: 14px 40px;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.submit-btn:hover { opacity: 0.85; }
+
+.result-msg {
+  margin-top: 14px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 14px;
+  min-height: 24px;
+}
+
+.result-msg.success { color: #00dc50; }
+.result-msg.error   { color: #ff4d6d; }
+
+footer {
+  text-align: center;
+  padding: 32px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: rgba(255,255,255,0.12);
+  border-top: 1px solid rgba(255,255,255,0.04);
+}
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="scanline"></div>
+
+<header>
+  <div class="logo">&lt;HAWD&gt; <span>// HackersFriday CTF</span></div>
+  <div class="badge">SEASON 2025</div>
+</header>
+
+<section class="hero">
+  <div class="pre-tag">Week 1 · API Security Challenge</div>
+  <h1>
+    <span class="white">HACKERS</span><br>
+    <span class="green">FRIDAY</span>
+  </h1>
+  <p class="subtitle">find it  ·  break it  ·  own it</p>
+</section>
+
+<section class="challenges">
+  <h2>// CHALLENGES</h2>
+
+  <div class="challenge-card card-1">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Challenge 1 — The Order Thief</div>
+        <div class="card-meta">
+          <span class="tag tag-cat">BOLA</span>
+          <span class="tag tag-diff">Beginner</span>
+          <span class="tag tag-pts">10 pts</span>
+        </div>
+      </div>
+    </div>
+    <p class="card-desc">
+      You're logged in as <code style="color:#00dc50">alice</code>. The shop has order records for multiple users. 
+      Can you access an order that doesn't belong to you and find the hidden flag?
+    </p>
+    <div class="card-hint">
+      <strong>Hint:</strong> Login → get your token → try accessing <code>/api/orders/103</code>
+    </div>
+  </div>
+
+  <div class="challenge-card card-2">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Challenge 2 — Read Someone's Mail</div>
+        <div class="card-meta">
+          <span class="tag tag-cat">BOLA</span>
+          <span class="tag tag-diff">Beginner</span>
+          <span class="tag tag-pts">10 pts</span>
+        </div>
+      </div>
+    </div>
+    <p class="card-desc">
+      The API exposes user messages via <code style="color:#ffd000">/api/messages/:userId</code>. 
+      You're authenticated as alice (userId: 1). Can you read messages belonging to userId 3?
+    </p>
+    <div class="card-hint">
+      <strong>Hint:</strong> Think about what changes in the URL and what the API forgets to check.
+    </div>
+  </div>
+
+  <div class="challenge-card card-3">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Challenge 3 — Become the Admin</div>
+        <div class="card-meta">
+          <span class="tag tag-cat">Mass Assignment</span>
+          <span class="tag tag-diff">Intermediate</span>
+          <span class="tag tag-pts">5 pts</span>
+        </div>
+      </div>
+    </div>
+    <p class="card-desc">
+      The profile update endpoint blindly accepts all fields from the request body. 
+      Can you escalate your own role to <code style="color:#448aff">admin</code>?
+    </p>
+    <div class="card-hint">
+      <strong>Hint:</strong> PUT <code>/api/users/1/profile</code> with a body that includes something extra.
+    </div>
+  </div>
+</section>
+
+<section class="submit-section">
+  <div class="submit-box">
+    <h3>🚩 Submit Your Flag</h3>
+    <p>// format: HAWD{...}</p>
+    <input class="flag-input" id="flagInput" type="text" placeholder="HAWD{your_flag_here}" />
+    <button class="submit-btn" onclick="submitFlag()">Submit Flag</button>
+    <div class="result-msg" id="resultMsg"></div>
+  </div>
+</section>
+
+<footer>
+  &lt;HAWD&gt; HackersFriday CTF · HackingAPIswithDami · #HackersFriday
+</footer>
+
+<script>
+const FLAGS = {
+  "HAWD{b0la_1s_4ll_4b0ut_auth0riz4ti0n_not_4uth3ntic4ti0n}": "🎉 Correct! Challenge 1 & 2 — BOLA mastered. 10 pts!",
+  "HAWD{m4ss_4ss1gnm3nt_1s_d4ng3r0us}": "🎉 Correct! Challenge 3 — Mass Assignment conquered. 5 pts!",
+};
+
+function submitFlag() {
+  const input = document.getElementById("flagInput").value.trim();
+  const msg = document.getElementById("resultMsg");
+
+  if (FLAGS[input]) {
+    msg.textContent = FLAGS[input];
+    msg.className = "result-msg success";
+  } else if (input.startsWith("HAWD{")) {
+    msg.textContent = "❌ Close... but that's not right. Keep digging.";
+    msg.className = "result-msg error";
+  } else {
+    msg.textContent = "❌ Wrong format. Flag should start with HAWD{";
+    msg.className = "result-msg error";
+  }
+}
+
+document.getElementById("flagInput").addEventListener("keydown", e => {
+  if (e.key === "Enter") submitFlag();
+});
+</script>
+</body>
+</html>
