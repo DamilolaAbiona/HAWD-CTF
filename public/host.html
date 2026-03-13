@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HAWD CTF — Host Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #07090f; color: #f0f4ff; font-family: 'Poppins', sans-serif; min-height: 100vh; padding: 40px; }
+.header { margin-bottom: 32px; }
+.header h1 { font-size: 26px; font-weight: 700; }
+.header p  { font-family: 'Share Tech Mono', monospace; font-size: 12px; color: rgba(255,255,255,0.35); letter-spacing: 2px; margin-top: 4px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 900px; }
+.card { background: #0e1220; border: 1px solid #1a2040; border-radius: 14px; padding: 28px; }
+.card h2 { font-size: 17px; font-weight: 600; margin-bottom: 18px; }
+label { font-family: 'Share Tech Mono', monospace; font-size: 12px; color: rgba(255,255,255,0.4); letter-spacing: 2px; display: block; margin-bottom: 6px; }
+input { width: 100%; background: rgba(255,255,255,0.04); border: 1px solid #1a2040; border-radius: 8px; padding: 11px 14px; color: #f0f4ff; font-family: 'Share Tech Mono', monospace; font-size: 14px; outline: none; margin-bottom: 14px; }
+input:focus { border-color: rgba(0,220,80,0.4); }
+.btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 14px; cursor: pointer; letter-spacing: 1px; margin-bottom: 10px; }
+.btn-green { background: #00dc50; color: #000; }
+.btn-red   { background: #ff4d6d; color: #fff; }
+.btn-gray  { background: #1a2040; color: rgba(255,255,255,0.6); }
+.btn:hover { opacity: 0.85; }
+.log { background: rgba(0,0,0,0.3); border-radius: 8px; padding: 14px; font-family: 'Share Tech Mono', monospace; font-size: 12px; height: 200px; overflow-y: auto; color: rgba(255,255,255,0.5); border: 1px solid #1a2040; }
+.log .entry { margin-bottom: 4px; }
+.log .entry.ok   { color: #00dc50; }
+.log .entry.err  { color: #ff4d6d; }
+.log .entry.info { color: #ffd000; }
+.status-badge { display: inline-block; padding: 4px 14px; border-radius: 20px; font-family: 'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 2px; margin-bottom: 16px; }
+.status-badge.inactive { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.3); }
+.status-badge.active   { background: rgba(0,220,80,0.1); color: #00dc50; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>🎮 HAWD CTF — Host Panel</h1>
+  <p>// admin control · start · stop · monitor</p>
+</div>
+<div class="grid">
+  <div class="card">
+    <h2>🔐 Admin Login</h2>
+    <label>USERNAME</label>
+    <input id="adminUser" value="admin" />
+    <label>PASSWORD</label>
+    <input id="adminPass" type="password" value="admin999" />
+    <button class="btn btn-green" onclick="adminLogin()">Get Admin Token</button>
+    <div id="tokenDisplay" style="font-family:monospace;font-size:11px;color:rgba(255,255,255,0.3);word-break:break-all;margin-top:8px"></div>
+  </div>
+  <div class="card">
+    <h2>⚡ CTF Control</h2>
+    <div id="ctfStatusBadge" class="status-badge inactive">INACTIVE</div>
+    <label>DURATION (minutes)</label>
+    <input id="duration" type="number" value="30" min="1" max="120" />
+    <button class="btn btn-green" onclick="startCTF()">▶ START CTF</button>
+    <button class="btn btn-red"   onclick="stopCTF()">■ STOP CTF</button>
+    <button class="btn btn-gray"  onclick="window.open('/','_blank')">👁 View Player Page</button>
+  </div>
+  <div class="card" style="grid-column: span 2;">
+    <h2>📋 Event Log</h2>
+    <div class="log" id="logEl">
+      <div class="entry info">// Host panel ready. Login and start the CTF.</div>
+    </div>
+  </div>
+</div>
+<script>
+let adminToken = "";
+let ws;
+function log(msg, type = "") {
+  const el = document.getElementById("logEl");
+  const d  = document.createElement("div");
+  d.className = `entry ${type}`;
+  d.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  el.appendChild(d);
+  el.scrollTop = el.scrollHeight;
+}
+async function adminLogin() {
+  const username = document.getElementById("adminUser").value;
+  const password = document.getElementById("adminPass").value;
+  try {
+    const res  = await fetch("/api/admin/login", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({username,password}) });
+    const data = await res.json();
+    if (data.token) {
+      adminToken = data.token;
+      document.getElementById("tokenDisplay").textContent = "Token: " + adminToken.substring(0,40) + "...";
+      log("✅ Admin token obtained.", "ok");
+      connectWS();
+    } else { log("❌ Login failed: " + data.error, "err"); }
+  } catch(e) { log("❌ Error: " + e.message, "err"); }
+}
+async function startCTF() {
+  if (!adminToken) { log("⚠️ Login first!", "err"); return; }
+  const mins = parseInt(document.getElementById("duration").value) || 30;
+  try {
+    const res  = await fetch("/api/admin/start", { method:"POST", headers:{"Content-Type":"application/json","Authorization":"Bearer "+adminToken}, body:JSON.stringify({minutes:mins}) });
+    const data = await res.json();
+    if (res.ok) {
+      log(`🔓 CTF STARTED — ${mins} mins. Ends at ${new Date(data.endsAt).toLocaleTimeString()}`, "ok");
+      document.getElementById("ctfStatusBadge").textContent = "LIVE";
+      document.getElementById("ctfStatusBadge").className = "status-badge active";
+    } else { log("❌ " + data.error, "err"); }
+  } catch(e) { log("❌ Error: " + e.message, "err"); }
+}
+async function stopCTF() {
+  if (!adminToken) { log("⚠️ Login first!", "err"); return; }
+  try {
+    const res  = await fetch("/api/admin/stop", { method:"POST", headers:{"Authorization":"Bearer "+adminToken} });
+    const data = await res.json();
+    log("■ CTF STOPPED.", "info");
+    data.leaderboard?.forEach(p => log(`  #${p.rank} ${p.username} — ${p.total} pts`));
+    document.getElementById("ctfStatusBadge").textContent = "STOPPED";
+    document.getElementById("ctfStatusBadge").className = "status-badge inactive";
+  } catch(e) { log("❌ Error: " + e.message, "err"); }
+}
+function connectWS() {
+  const proto = location.protocol === "https:" ? "wss" : "ws";
+  ws = new WebSocket(`${proto}://${location.host}`);
+  ws.onmessage = (e) => {
+    const data = JSON.parse(e.data);
+    if (data.type === "solve") log(`${data.firstBlood?"🩸 FIRST BLOOD":"✅ SOLVE"} — ${data.player} on "${data.challenge}" (+${data.pts}pts)`, "ok");
+    else if (data.type === "ctf_end") {
+      log("⏰ CTF ended.", "info");
+      data.leaderboard?.forEach(p => log(`  #${p.rank} ${p.username} — ${p.total} pts`));
+      document.getElementById("ctfStatusBadge").textContent = "ENDED";
+      document.getElementById("ctfStatusBadge").className = "status-badge inactive";
+    }
+  };
+  log("📡 Live monitoring active.", "info");
+}
+</script>
+</body>
+</html>
