@@ -89,7 +89,6 @@ The profile update endpoint blindly accepts any JSON field. Can you escalate you
 3. Include an unexpected field in your request body
 4. Check the response carefully
 
-**Flag:** `HAWD{m4ss_4ss1gnm3nt_1s_d4ng3r0us}`
 
 ---
 
